@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>暖阳食光 · 校园午餐聊天点评（用户登录版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', 'Noto Sans', sans-serif;
+        }
+
+        body {
+            background: #fff3e0;
+            background-image: radial-gradient(circle at 10% 20%, rgba(255, 200, 120, 0.12) 2%, transparent 2.5%),
+                              radial-gradient(circle at 80% 70%, rgba(255, 160, 60, 0.08) 1.8%, transparent 2%);
+            background-size: 40px 40px, 32px 32px;
+            padding: 2rem 1rem 3rem;
+            transition: all 0.2s;
+        }
+
+        /* 登录遮罩层 (全屏弹窗) */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(40, 25, 10, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        .login-overlay.hidden {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .login-card {
+            background: #fffaf2;
+            max-width: 420px;
+            width: 90%;
+            border-radius: 2.5rem;
+            padding: 2rem 1.8rem;
+            text-align: center;
+            box-shadow: 0 30px 40px rgba(0,0,0,0.2);
+            border: 1px solid #ffcf97;
+            animation: fadeSlideUp 0.3s ease;
+        }
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-card h2 {
+            color: #c25d00;
+            font-size: 1.9rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .login-card p {
+            color: #b8703a;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+        .login-input-group {
+            margin-bottom: 1.2rem;
+            text-align: left;
+        }
+        .login-input-group label {
+            font-weight: 600;
+            color: #a6531a;
+            font-size: 0.85rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .login-input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 60px;
+            border: 1px solid #ffcf9a;
+            background: white;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .login-input-group input:focus {
+            border-color: #ff9d3d;
+            box-shadow: 0 0 0 3px rgba(255, 157, 61, 0.2);
+        }
+        .login-btn {
+            background: #ff9142;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 60px;
+            font-weight: bold;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+        }
+        .login-btn:hover {
+            background: #e57a2c;
+            transform: scale(0.98);
+        }
+        .login-tip {
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            color: #bd842c;
+        }
+        .user-bar {
+            background: #fff3e6;
+            border-radius: 60px;
+            padding: 0.3rem 1rem 0.3rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #c06824;
+            border: 1px solid #ffddb3;
+        }
+        .logout-icon {
+            background: #ffd6b0;
+            border-radius: 40px;
+            padding: 5px 10px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .logout-icon:hover {
+            background: #ffc184;
+        }
+        .app-container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: rgba(255, 248, 235, 0.96);
+            backdrop-filter: blur(1px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            border: 1px solid #ffdec2;
+        }
+        .hero-header {
+            background: linear-gradient(135deg, #ffb347 0%, #ff8c1a 100%);
+            padding: 1.2rem 2rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .title-area h1 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+        .title-area p {
+            opacity: 0.9;
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+        }
+        .write-btn {
+            background: #ffffffdd;
+            backdrop-filter: blur(4px);
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #c25d00;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .write-btn:hover {
+            background: white;
+            transform: scale(1.02);
+        }
+        .feed-section {
+            padding: 1.5rem 1.8rem 2rem;
+        }
+        .feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .feed-title {
+            font-weight: 800;
+            font-size: 1.3rem;
+            color: #c2630c;
+            border-left: 5px solid #ffa53e;
+            padding-left: 14px;
+            background: linear-gradient(135deg, #ffedd5, transparent);
+        }
+        .review-stats {
+            font-size: 0.75rem;
+            color: #bc6f1f;
+            background: #ffedd5;
+            padding: 0.25rem 0.8rem;
+            border-radius: 20px;
+        }
+        .review-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+            max-height: 65vh;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .review-card {
+            background: #ffffffea;
+            border-radius: 1.6rem;
+            border: 1px solid #ffdcb0;
+            padding: 1.2rem;
+            transition: all 0.2s;
+        }
+        .review-card:hover {
+            border-color: #ffbc6e;
+            box-shadow: 0 12px 22px rgba(0,0,0,0.08);
+        }
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.7rem;
+            gap: 8px;
+        }
+        .user-name-avatar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(145deg, #ffbc6e, #ff9c3a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .username {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #c3621b;
+            background: #fff0de;
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+        }
+        .location-date {
+            font-size: 0.7rem;
+            color: #b87b42;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .card-media {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 0.6rem 0 0.5rem;
+            align-items: center;
+        }
+        .review-img {
+            width: 85px;
+            height: 85px;
+            object-fit: cover;
+            border-radius: 1rem;
+            background: #f7e5d3;
+            border: 1px solid #ffcf97;
+            cursor: pointer;
+        }
+        .avg-badge {
+            background: #fe9e2f;
+            color: white;
+            border-radius: 40px;
+            padding: 0.3rem 1rem;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .score-detail {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 0.5rem 0 0.5rem;
+            font-size: 0.75rem;
+            color: #ad6430;
+            background: #fff4e8;
+            padding: 0.5rem 0.8rem;
+            border-radius: 2rem;
+        }
+        .review-text {
+            color: #4d351b;
+            line-height: 1.45;
+            font-size: 0.95rem;
+            margin: 0.3rem 0 0.5rem;
+            background: #fff9f0;
+            padding: 0.7rem;
+            border-radius: 1rem;
+        }
+        .map-nav-area {
+            background: #fff1e2;
+            border-radius: 1.2rem;
+            padding: 0.6rem;
+            margin: 0.4rem 0 0.8rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .nav-link {
+            background: #ff9f3d;
+            color: white;
+            border-radius: 40px;
+            padding: 6px 14px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            gap: 5px;
+        }
+        .chat-section {
+            margin-top: 0.8rem;
+            background: #fffbf2;
+            border-radius: 1.2rem;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #ffecce;
+        }
+        .chat-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #d28231;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chat-messages {
+            max-height: 180px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .chat-bubble {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .chat-avatar {
+            width: 28px;
+            height: 28px;
+            background: #f9bf7f;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #653b12;
+            flex-shrink: 0;
+        }
+        .bubble-content {
+            background: #fef3e6;
+            padding: 6px 10px;
+            border-radius: 18px;
+            max-width: 85%;
+            font-size: 0.75rem;
+            color: #3e2a19;
+            border: 0.5px solid #ffddb0;
+        }
+        .chat-name {
+            font-weight: 700;
+            margin-right: 6px;
+            color: #bd691f;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .chat-input {
+            flex: 1;
+            border: 1px solid #ffd7ac;
+            border-radius: 40px;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            background: white;
+        }
+        .chat-send {
+            background: #ffb155;
+            border: none;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+        }
+        .action-bar {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.3rem;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            background: none;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #bc711f;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 40px;
+            transition: all 0.1s;
+        }
+        .action-btn.report-btn.reported {
+            color: #a03a0a;
+            text-decoration: line-through;
+            opacity: 0.6;
+            cursor: default;
+            pointer-events: none;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(50, 30, 10, 0.65);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-container {
+            background: #fffaf0;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 2rem;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid #ffcd91;
+        }
+        .modal-header {
+            background: #ffdbb5;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #aa561c;
+        }
+        .review-form {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        label { font-weight: 600; color: #b45f29; }
+        input, textarea {
+            border: 1px solid #ffdbb0;
+            border-radius: 1rem;
+            padding: 0.7rem;
+            background: #fffef7;
+        }
+        .image-upload-area {
+            border: 2px dashed #ffbc70;
+            border-radius: 1.2rem;
+            padding: 0.8rem;
+            text-align: center;
+            background: #fff7ed;
+            cursor: pointer;
+        }
+        .slider-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .submit-btn {
+            background: #ff9142;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 60px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+        }
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 1rem;
+            background: #f8e7d4;
+            color: #b06527;
+        }
+        .empty-state { text-align: center; padding: 3rem; background: #fff3e3; border-radius: 2rem; }
+        .toast-msg {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2e241d;
+            color: #ffddb0;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            z-index: 1100;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+        }
+        .user-bar .user-name {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 登录模态层 -->
+<div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+        <h2>☀️ 暖阳食光</h2>
+        <p>登录后，点评 / 聊天 / 点赞举报</p>
+        <div class="login-input-group">
+            <label>👤 用户名</label>
+            <input type="text" id="loginUsername" placeholder="例如: 橙汁干饭王" maxlength="20" autocomplete="off">
+        </div>
+        <div class="login-input-group">
+            <label>🔐 简单口令（任意）</label>
+            <input type="password" id="loginPass" placeholder="随便输，记住用户名就行" autocomplete="off">
+        </div>
+        <button class="login-btn" id="doLoginBtn">🍜 进入食堂 · 开饭啦</button>
+        <div class="login-tip">✨ 只需用户名，聊天记录和点评与你绑定</div>
+    </div>
+</div>
+
+<div class="app-container" id="mainApp" style="opacity:0; transition: opacity 0.2s;">
+    <div class="hero-header">
+        <div class="title-area">
+            <h1>☀️ 暖阳食光 · 午餐聊天室</h1>
+            <p>点评 + 地图导航 | 带头像对话 | 一键举报</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="user-bar" id="userBar">
+                <span>👋</span><span class="user-name" id="currentUserDisplay">未登录</span>
+                <span class="logout-icon" id="logoutBtn">🚪 退出</span>
+            </div>
+            <button class="write-btn" id="openReviewModalBtn">✍️ 写点评 & 开聊</button>
+        </div>
+    </div>
+
+    <div class="feed-section">
+        <div class="feed-header">
+            <div class="feed-title">🍱 干饭人动态 · 可举报</div>
+            <div class="review-stats" id="statsCount">0条点评</div>
+        </div>
+        <div class="review-list" id="reviewListContainer"></div>
+    </div>
+    <footer>❤️ 点赞 💬 聊天对话 🗺️ 导航 📢 举报不良内容</footer>
+</div>
+<div id="toastMsg" class="toast-msg"></div>
+
+<!-- 写点评模态框 -->
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header"><h3>📝 记录午餐 + 地图标注</h3><button class="close-modal" id="closeModalBtn" style="background:none;border:none;font-size:1.8rem;cursor:pointer;">&times;</button></div>
+        <div class="review-form">
+            <div class="form-row">
+                <div class="form-group"><label>👤 用户名</label><input type="text" id="reviewUsername" placeholder="自动同步登录名" readonly style="background:#f5ede3;"></div>
+                <div class="form-group"><label>📍 餐厅名称</label><input type="text" id="reviewLocation" placeholder="二食堂 / 阳光餐厅"></div>
+            </div>
+            <div class="form-group"><label>🗺️ 导航地址 (选填)</label><input type="text" id="mapAddress" placeholder="详细地址, 用于地图导航"></div>
+            <div class="form-group"><label>📸 上传照片</label><div class="image-upload-area" id="uploadArea"><input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" style="display:none;"><label for="imageInput" style="background:#ffedd5;padding:0.3rem 1rem;border-radius:40px;display:inline-block;cursor:pointer;">📁 选择图片</label><div id="imagePreviewContainer" class="image-preview" style="margin-top:8px;"></div><div id="imgError" style="color:#d9534f;font-size:0.7rem;"></div></div></div>
+            <div class="form-group"><label>💬 点评内容</label><textarea rows="2" id="reviewText" placeholder="味道、推荐菜..."></textarea></div>
+            <div class="form-group"><label>🍲 评分 (0-10)</label><div class="slider-group"><span style="width:45px;">口味</span><input type="range" id="tasteSlider" min="0" max="10" value="8"><span class="slider-value" id="tasteVal">8</span></div><div class="slider-group"><span style="width:45px;">温度</span><input type="range" id="tempSlider" min="0" max="10" value="8"><span class="slider-value" id="tempVal">8</span></div><div class="slider-group"><span style="width:45px;">外观</span><input type="range" id="lookSlider" min="0" max="10" value="8"><span class="slider-value" id="lookVal">8</span></div></div>
+            <button class="submit-btn" id="submitReviewBtn">✅ 发布点评 (可举报/可聊天)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- 全局当前登录用户 ----------
+    let currentUser = null;   // 存储 { username }
+
+    // 点评数据
+    let reviews = [];
+
+    // 辅助函数
+    function showToast(msg) { 
+        const toast = document.getElementById('toastMsg'); 
+        toast.innerText = msg; 
+        toast.style.opacity = '1'; 
+        setTimeout(() => { toast.style.opacity = '0'; }, 2000); 
+    }
+
+    // 存储数据
+    function saveToStorage() { 
+        localStorage.setItem('lunchWarmReport_v6', JSON.stringify(reviews)); 
+    }
+
+    function loadReviewsFromStorage() {
+        const stored = localStorage.getItem('lunchWarmReport_v6');
+        if (stored) {
+            try {
+                reviews = JSON.parse(stored);
+                if (!Array.isArray(reviews)) reviews = [];
+                reviews.forEach(r => {
+                    if (r.likes === undefined) r.likes = 0;
+                    if (r.likedByMe === undefined) r.likedByMe = false;
+                    if (!r.comments) r.comments = [];
+                    if (!r.reportedByMe) r.reportedByMe = false;
+                    if (r.reportCount === undefined) r.reportCount = 0;
+                    if (!r.username) r.username = "暖阳食客";
+                    if (!r.location) r.location = "校园餐厅";
+                    if (!r.mapAddress) r.mapAddress = "";
+                    if (!r.dateStr) { const d = new Date(r.createdAt || Date.now()); r.dateStr = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+                    if (r.taste === undefined) r.taste = 8;
+                    if (r.temp === undefined) r.temp = 8;
+                    if (r.look === undefined) r.look = 8;
+                });
+            } catch(e) { reviews = []; }
+        }
+        if (reviews.length === 0) {
+            const now = Date.now();
+            reviews = [
+                { id: now+1, username: "橙子同学", location: "阳光餐厅", mapAddress: "大学城阳光路88号", imageData: null, text: "宫保鸡丁超级下饭，橙香风味绝了！", taste: 9, temp: 8, look: 8, createdAt: now-172800000, dateStr: "2025-4-12", likes: 4, likedByMe: false, comments: [{ user: "饭团仔", text: "我也爱吃这个！" }], reportedByMe: false, reportCount: 0 },
+                { id: now+2, username: "小火腿", location: "海韵餐厅", mapAddress: "海滨路101号", imageData: null, text: "披萨料足，芝士拉丝～", taste: 9, temp: 9, look: 8, createdAt: now-86400000, dateStr: "2025-4-13", likes: 7, likedByMe: false, comments: [], reportedByMe: false, reportCount: 0 }
+            ];
+            saveToStorage();
+        }
+    }
+
+    // 登录状态持久化
+    function saveLoginState() {
+        if(currentUser) localStorage.setItem('lunch_currentUser', JSON.stringify(currentUser));
+        else localStorage.removeItem('lunch_currentUser');
+    }
+    function loadLoginState() {
+        const saved = localStorage.getItem('lunch_currentUser');
+        if(saved) {
+            try { currentUser = JSON.parse(saved); } catch(e) { currentUser = null; }
+        }
+        return currentUser;
+    }
+
+    // 渲染整个主界面 (需依赖 currentUser)
+    function getAvgScore(review) { return ((review.taste + review.temp + review.look)/3).toFixed(1); }
+    function formatNiceDate(timestamp) { if(!timestamp) return "近期"; const d = new Date(timestamp); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; }
+    function getNavigationLink(address) { if (!address) return null; return `https://uri.amap.com/navigation?to=${encodeURIComponent(address)}&mode=car&callnative=1`; }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m] || m)); }
+
+    function reportReview(reviewId) {
+        if(!currentUser) { showToast("请先登录"); return; }
+        const review = reviews.find(r => r.id === reviewId);
+        if (!review) return;
+        if (review.reportedByMe) { showToast("你已经举报过这条点评"); return; }
+        review.reportedByMe = true;
+        review.reportCount = (review.reportCount || 0) + 1;
+        saveToStorage();
+        renderReviews();
+        showToast("举报成功！感谢维护社区环境");
+    }
+
+    function addChat(reviewId, message, userName) {
+        if(!currentUser) { showToast("请先登录再发言"); return; }
+        if (!message.trim()) return;
+        const review = reviews.find(r => r.id === reviewId);
+        if (!review) return;
+        if (!review.comments) review.comments = [];
+        review.comments.push({ user: userName.slice(0,12), text: message.slice(0, 120), timestamp: Date.now() });
+        saveToStorage();
+        renderReviews();
+        setTimeout(() => {
+            const msgContainer = document.getElementById(`chatMsgs-${reviewId}`);
+            if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+        }, 30);
+    }
+
+    function toggleLike(reviewId) {
+        if(!currentUser) { showToast("请登录后点赞"); return; }
+        const review = reviews.find(r => r.id === reviewId);
+        if (!review) return;
+        if (review.likedByMe) { review.likes--; review.likedByMe = false; }
+        else { review.likes++; review.likedByMe = true; }
+        saveToStorage();
+        renderReviews();
+    }
+
+    function renderReviews() {
+        const container = document.getElementById('reviewListContainer');
+        const statsSpan = document.getElementById('statsCount');
+        if (!container) return;
+        if (reviews.length === 0) { container.innerHTML = `<div class="empty-state">🍽️ 还没有点评～ 点击「写点评」开启午餐聊天！</div>`; if(statsSpan) statsSpan.innerText = `0条点评`; return; }
+        if(statsSpan) statsSpan.innerText = `${reviews.length}条点评`;
+        const sorted = [...reviews].sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+        let html = '';
+        for(let rev of sorted) {
+            const avg = getAvgScore(rev);
+            const likeIcon = rev.likedByMe ? "❤️" : "🤍";
+            const likeCount = rev.likes || 0;
+            let imageHtml = rev.imageData ? `<img class="review-img" src="${rev.imageData}" alt="餐品" onclick="window.open('${rev.imageData}','_blank')">` : `<div style="width:85px;height:85px;background:#f5e2ce;border-radius:1rem;display:flex;align-items:center;justify-content:center;font-size:2rem;">🍚</div>`;
+            let mapNavHtml = '';
+            if (rev.mapAddress && rev.mapAddress.trim()) {
+                const navLink = getNavigationLink(rev.mapAddress);
+                if(navLink) mapNavHtml = `<div class="map-nav-area"><span>📍 ${escapeHtml(rev.mapAddress.slice(0, 35))}</span><a href="${navLink}" target="_blank" class="nav-link">🧭 导航前往</a></div>`;
+                else mapNavHtml = `<div class="map-nav-area"><span>📍 ${escapeHtml(rev.mapAddress.slice(0, 35))}</span><a href="https://uri.amap.com/search?keyword=${encodeURIComponent(rev.mapAddress)}" target="_blank" class="nav-link">🔍 搜索导航</a></div>`;
+            } else if(rev.location) {
+                mapNavHtml = `<div class="map-nav-area"><span>📍 ${escapeHtml(rev.location)}</span><a href="https://uri.amap.com/search?keyword=${encodeURIComponent(rev.location)}" target="_blank" class="nav-link">🔍 搜索导航</a></div>`;
+            } else { mapNavHtml = `<div class="map-nav-area"><span>🗺️ 未提供位置</span></div>`; }
+
+            let chatHtml = `<div class="chat-section" id="chatArea-${rev.id}"><div class="chat-title">💬 聊天对话 · ${rev.comments?.length || 0}条消息</div><div class="chat-messages" id="chatMsgs-${rev.id}">`;
+            if (rev.comments && rev.comments.length) {
+                rev.comments.forEach(c => {
+                    const avatarLetter = (c.user?.[0] || '友').toUpperCase();
+                    chatHtml += `<div class="chat-bubble"><div class="chat-avatar">${escapeHtml(avatarLetter)}</div><div class="bubble-content"><span class="chat-name">${escapeHtml(c.user)}</span> ${escapeHtml(c.text)}</div></div>`;
+                });
+            } else { chatHtml += `<div style="font-size:0.7rem;color:#c07d46;">✨ 来聊聊今天的午餐吧～</div>`; }
+            chatHtml += `</div><div class="chat-input-area"><input type="text" class="chat-input" id="chatInput-${rev.id}" placeholder="说点什么..."><button class="chat-send" data-id="${rev.id}">发送</button></div></div>`;
+
+            const reportedClass = rev.reportedByMe ? "reported" : "";
+            const reportText = rev.reportedByMe ? "⛔ 已举报" : "🚩 举报";
+
+            html += `
+                <div class="review-card" data-id="${rev.id}">
+                    <div class="user-info">
+                        <div class="user-name-avatar"><div class="avatar">${escapeHtml((rev.username?.[0]||'食').toUpperCase())}</div><span class="username">${escapeHtml(rev.username)}</span></div>
+                        <div class="location-date">📅 ${rev.dateStr || formatNiceDate(rev.createdAt)} · ${escapeHtml(rev.location)}</div>
+                    </div>
+                    <div class="card-media">${imageHtml}<div><span class="avg-badge">⭐ 综合 ${avg}</span></div></div>
+                    <div class="score-detail"><span>😋 口味 ${rev.taste}</span><span>🔥 温度 ${rev.temp}</span><span>🎨 外观 ${rev.look}</span></div>
+                    <div class="review-text">“${escapeHtml(rev.text)}”</div>
+                    ${mapNavHtml}
+                    <div class="action-bar">
+                        <button class="action-btn like-btn" data-id="${rev.id}">${likeIcon} <span>${likeCount}</span></button>
+                        <button class="action-btn report-btn ${reportedClass}" data-id="${rev.id}" ${rev.reportedByMe ? 'disabled' : ''}>${reportText}</button>
+                    </div>
+                    ${chatHtml}
+                </div>`;
+        }
+        container.innerHTML = html;
+        document.querySelectorAll('.like-btn').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); const id = parseInt(btn.getAttribute('data-id')); toggleLike(id); }); });
+        document.querySelectorAll('.report-btn:not(.reported)').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); const id = parseInt(btn.getAttribute('data-id')); reportReview(id); }); });
+        document.querySelectorAll('.chat-send').forEach(sendBtn => {
+            sendBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(sendBtn.getAttribute('data-id'));
+                const inputField = document.getElementById(`chatInput-${id}`);
+                const msg = inputField?.value.trim();
+                if (!msg) { showToast("说点什么再发送～"); return; }
+                if(!currentUser) { showToast("请先登录"); return; }
+                addChat(id, msg, currentUser.username);
+                inputField.value = '';
+            });
+        });
+    }
+
+    // 登录逻辑
+    function performLogin() {
+        const usernameInputDom = document.getElementById('loginUsername');
+        let username = usernameInputDom.value.trim();
+        if(!username) { showToast("请输入用户名～"); return; }
+        currentUser = { username: username.slice(0,20) };
+        saveLoginState();
+        // 隐藏登录层，展示主APP
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('mainApp').style.opacity = '1';
+        // 更新顶部用户栏
+        document.getElementById('currentUserDisplay').innerText = currentUser.username;
+        // 同步登录名到写点评表单
+        const reviewUsernameInput = document.getElementById('reviewUsername');
+        if(reviewUsernameInput) reviewUsernameInput.value = currentUser.username;
+        // 刷新聊天默认发送人相关
+        renderReviews();
+        showToast(`欢迎回来，${currentUser.username} 🍜`);
+    }
+
+    function logout() {
+        currentUser = null;
+        saveLoginState();
+        // 清空界面状态, 显示登录层
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        document.getElementById('mainApp').style.opacity = '0';
+        document.getElementById('currentUserDisplay').innerText = '未登录';
+        renderReviews();  // 重新渲染，但未登录状态下点赞/举报/聊天会提示
+        showToast("已退出登录");
+    }
+
+    // 模态框等UI初始化 (复用之前的)
+    let currentImageBase64 = null;
+    const modal = document.getElementById('modalOverlay');
+    const openBtn = document.getElementById('openReviewModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const submitBtn = document.getElementById('submitReviewBtn');
+    const reviewLocation = document.getElementById('reviewLocation');
+    const mapAddressInput = document.getElementById('mapAddress');
+    const reviewTextarea = document.getElementById('reviewText');
+    const tasteSlider = document.getElementById('tasteSlider'); const tempSlider = document.getElementById('tempSlider'); const lookSlider = document.getElementById('lookSlider');
+    const tasteVal = document.getElementById('tasteVal'); const tempVal = document.getElementById('tempVal'); const lookVal = document.getElementById('lookVal');
+    const imageInput = document.getElementById('imageInput'); const previewContainer = document.getElementById('imagePreviewContainer'); const imgErrorDiv = document.getElementById('imgError');
+    
+    function updateSlidersUI() { tasteVal.innerText = tasteSlider.value; tempVal.innerText = tempSlider.value; lookVal.innerText = lookSlider.value; }
+    tasteSlider.addEventListener('input', updateSlidersUI); tempSlider.addEventListener('input', updateSlidersUI); lookSlider.addEventListener('input', updateSlidersUI);
+    
+    const uploadAreaDiv = document.getElementById('uploadArea');
+    if(uploadAreaDiv) uploadAreaDiv.addEventListener('click', (e) => { if(e.target !== imageInput && !e.target.closest('label')) imageInput.click(); });
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(!file) { currentImageBase64 = null; previewContainer.innerHTML = ''; return; }
+        if(!file.type.startsWith('image/')) { imgErrorDiv.innerText = '仅支持图片格式'; imageInput.value=''; currentImageBase64=null; previewContainer.innerHTML=''; return; }
+        if(file.size > 2.5*1024*1024) { imgErrorDiv.innerText = '图片小于2.5MB'; imageInput.value=''; return; }
+        imgErrorDiv.innerText = '';
+        const reader = new FileReader();
+        reader.onload = ev => { currentImageBase64 = ev.target.result; previewContainer.innerHTML = `<img src="${currentImageBase64}" style="max-height:100px;border-radius:12px;margin-top:6px;">`; };
+        reader.readAsDataURL(file);
+    });
+    
+    function resetModalForm() { 
+        if(currentUser) document.getElementById('reviewUsername').value = currentUser.username;
+        reviewLocation.value = ''; mapAddressInput.value = ''; reviewTextarea.value = ''; 
+        tasteSlider.value='8'; tempSlider.value='8'; lookSlider.value='8'; updateSlidersUI(); 
+        currentImageBase64 = null; previewContainer.innerHTML = ''; imageInput.value = ''; imgErrorDiv.innerText = ''; 
+    }
+    function openModal() { if(!currentUser) { showToast("请先登录后再写点评"); return; } resetModalForm(); modal.classList.add('active'); }
+    function closeModal() { modal.classList.remove('active'); }
+    openBtn.addEventListener('click', openModal); 
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+    
+    submitBtn.addEventListener('click', () => {
+        if(!currentUser) { showToast("请先登录"); closeModal(); return; }
+        const location = reviewLocation.value.trim() || "校园餐厅";
+        const mapAddress = mapAddressInput.value.trim();
+        const text = reviewTextarea.value.trim(); 
+        if(!text) { showToast("点评内容不能为空"); return; }
+        const taste = parseInt(tasteSlider.value), temp = parseInt(tempSlider.value), look = parseInt(lookSlider.value);
+        const now = Date.now(); 
+        const todayStr = new Date().toLocaleDateString('zh-CN');
+        const newReview = { 
+            id: now, username: currentUser.username, location: location.slice(0,30), mapAddress, 
+            imageData: currentImageBase64 || null, text, taste, temp, look, createdAt: now, dateStr: todayStr, 
+            likes: 0, likedByMe: false, comments: [], reportedByMe: false, reportCount: 0 
+        };
+        reviews.unshift(newReview); saveToStorage(); renderReviews(); closeModal(); showToast("点评发布成功！");
+    });
+    
+    // 初始化入口
+    function init() {
+        loadReviewsFromStorage();
+        const savedUser = loadLoginState();
+        if(savedUser && savedUser.username) {
+            currentUser = savedUser;
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainApp').style.opacity = '1';
+            document.getElementById('currentUserDisplay').innerText = currentUser.username;
+            if(document.getElementById('reviewUsername')) document.getElementById('reviewUsername').value = currentUser.username;
+        } else {
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('mainApp').style.opacity = '0';
+        }
+        renderReviews();
+        document.getElementById('doLoginBtn').addEventListener('click', performLogin);
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        // 按回车登录
+        const passInput = document.getElementById('loginPass');
+        passInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') performLogin(); });
+        const userInput = document.getElementById('loginUsername');
+        userInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') performLogin(); });
+        updateSlidersUI();
+    }
+    init();
+</script>
+</body>
+</html>
